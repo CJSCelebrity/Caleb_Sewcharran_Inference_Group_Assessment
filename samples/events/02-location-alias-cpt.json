@@ -1,0 +1,10 @@
+{
+  "eventId": "EVT-10452-002",
+  "eventType": "EmployeeUpdated",
+  "employeeId": "EMP10452",
+  "firstName": "Amira",
+  "lastName": "Khan",
+  "department": "Platform Engineering",
+  "location": "CPT",
+  "effectiveDate": "2026-10-05T09:00:00Z"
+}

@@ -1,0 +1,10 @@
+{
+  "eventId": "EVT-20871-001",
+  "eventType": "EmployeeUpdated",
+  "employeeId": "EMP20871",
+  "firstName": "Thandi",
+  "lastName": "Mokoena",
+  "department": "Recruitment",
+  "location": "Joburg",
+  "effectiveDate": "2026-10-03T10:15:00Z"
+}

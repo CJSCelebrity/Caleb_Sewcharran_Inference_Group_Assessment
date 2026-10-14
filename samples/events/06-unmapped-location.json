@@ -1,0 +1,10 @@
+{
+  "eventId": "EVT-30019-001",
+  "eventType": "EmployeeUpdated",
+  "employeeId": "EMP30019",
+  "firstName": "Sipho",
+  "lastName": "Dlamini",
+  "department": "Payroll",
+  "location": "Cape Twn",
+  "effectiveDate": "2026-10-02T07:00:00Z"
+}
