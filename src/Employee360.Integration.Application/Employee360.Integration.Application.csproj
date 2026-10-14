@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>Employee360.Integration.Application</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- EF Core abstractions only (DbSet/LINQ); the SQLite provider lives in Infrastructure. -->
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Options" Version="10.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Employee360.Integration.Domain\Employee360.Integration.Domain.csproj" />
+  </ItemGroup>
+
+</Project>

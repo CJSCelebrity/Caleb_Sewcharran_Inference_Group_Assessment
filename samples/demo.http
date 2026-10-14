@@ -1,0 +1,150 @@
+### Demo script for the walkthrough (VS Code REST Client, Rider or Visual Studio).
+### Start both services first (see README). Run the requests top to bottom.
+
+@integration = http://localhost:5100
+@employee360 = http://localhost:5200
+
+### 1. Happy path: publish an EmployeeUpdated event
+POST {{integration}}/simulate/events
+Content-Type: application/json
+
+< ./events/01-employee-updated.json
+
+### 1a. What happened to it
+GET {{integration}}/events/EVT-10452-001
+
+### 1b. Downstream view: updateCount = 1
+GET {{employee360}}/api/employees/EMP10452
+
+### 2. Same event delivered again -> Duplicate, nothing sent downstream
+POST {{integration}}/simulate/events
+Content-Type: application/json
+
+< ./events/01-employee-updated.json
+
+### 2a. duplicateDeliveries = 1, and downstream updateCount is still 1
+GET {{integration}}/events/EVT-10452-001
+
+###
+GET {{employee360}}/api/employees/EMP10452
+
+### 3. "CPT" is normalised to "Cape Town" (and department changes)
+POST {{integration}}/simulate/events
+Content-Type: application/json
+
+< ./events/02-location-alias-cpt.json
+
+### 4. An older event arrives late -> SkippedStale, newer data is not overwritten
+POST {{integration}}/simulate/events
+Content-Type: application/json
+
+< ./events/03-out-of-order-older.json
+
+###
+GET {{integration}}/employees/EMP10452
+
+### 5. Bad events are isolated in the dead-letter store
+POST {{integration}}/simulate/events
+Content-Type: application/json
+
+< ./events/04-missing-employee-id.json
+
+###
+POST {{integration}}/simulate/events
+Content-Type: application/json
+
+< ./events/05-malformed.json
+
+###
+POST {{integration}}/simulate/events
+Content-Type: application/json
+
+< ./events/06-unmapped-location.json
+
+### Same eventId as #1 but different content
+POST {{integration}}/simulate/events
+Content-Type: application/json
+
+< ./events/07-conflicting-duplicate.json
+
+###
+GET {{integration}}/dead-letters
+
+### 6. Downstream returns 503 twice, then recovers: retried inside one delivery (watch the logs)
+POST {{employee360}}/chaos
+Content-Type: application/json
+
+{ "failNext": 2, "statusCode": 503 }
+
+###
+POST {{integration}}/simulate/events
+Content-Type: application/json
+
+< ./events/08-new-employee.json
+
+###
+GET {{integration}}/events/EVT-20871-001
+
+### 7. Downstream is slow: our call times out, but Employee 360 still applies the update.
+###    The retry carries the same Idempotency-Key, so it is not applied twice.
+POST {{employee360}}/chaos
+Content-Type: application/json
+
+{ "failNext": 1, "delayMs": 5000 }
+
+###
+POST {{integration}}/simulate/events
+Content-Type: application/json
+
+{
+  "eventId": "EVT-41120-001",
+  "eventType": "EmployeeUpdated",
+  "employeeId": "EMP41120",
+  "firstName": "Pieter",
+  "lastName": "van Wyk",
+  "department": "Learning",
+  "location": "PTA",
+  "effectiveDate": "2026-10-04T12:00:00Z"
+}
+
+### updateCount = 1
+GET {{employee360}}/api/employees/EMP41120
+
+### 8. Downstream outage: retries exhausted across 3 deliveries -> dead-lettered
+POST {{employee360}}/chaos
+Content-Type: application/json
+
+{ "failNext": 100, "statusCode": 500 }
+
+###
+POST {{integration}}/simulate/events
+Content-Type: application/json
+
+{
+  "eventId": "EVT-55501-001",
+  "eventType": "EmployeeUpdated",
+  "employeeId": "EMP55501",
+  "firstName": "Lerato",
+  "lastName": "Nkosi",
+  "department": "Operations",
+  "location": "Durban",
+  "effectiveDate": "2026-10-06T08:00:00Z"
+}
+
+### After ~40s (3 deliveries x 4 attempts with backoff): status DeadLettered, reason MaxDeliveryCountExceeded
+GET {{integration}}/events/EVT-55501-001
+
+### 8a. Outage over: clear the fault and replay the dead letter (use the id from the response above)
+DELETE {{employee360}}/chaos
+
+###
+POST {{integration}}/dead-letters/5/replay
+
+###
+GET {{integration}}/events/EVT-55501-001
+
+### 9. Overall status
+GET {{integration}}/status
+
+###
+GET {{integration}}/health

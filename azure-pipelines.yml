@@ -1,0 +1,38 @@
+trigger:
+  branches:
+    include: [ main ]
+
+pr:
+  branches:
+    include: [ main ]
+
+pool:
+  vmImage: ubuntu-latest
+
+variables:
+  buildConfiguration: Release
+
+steps:
+  - task: UseDotNet@2
+    displayName: Install .NET 10 SDK
+    inputs:
+      packageType: sdk
+      version: 10.x
+
+  - script: dotnet restore
+    displayName: Restore
+
+  - script: dotnet build --no-restore --configuration $(buildConfiguration)
+    displayName: Build
+
+  - script: dotnet test --no-build --configuration $(buildConfiguration) --logger trx --results-directory $(Agent.TempDirectory)/TestResults
+    displayName: Test
+
+  - task: PublishTestResults@2
+    condition: succeededOrFailed()
+    inputs:
+      testResultsFormat: VSTest
+      testResultsFiles: '$(Agent.TempDirectory)/TestResults/*.trx'
+
+  # Next steps for a real pipeline: dotnet publish the integration as an Azure Function
+  # artifact, then deploy per environment (dev/test/prod) with Bicep/Terraform and approvals.
